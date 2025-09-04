@@ -1,20 +1,17 @@
-
 module writeback_cycle(
     // Declaration of IOs
-input clk, rst, ResultSrcW;
-input [31:0] PCPlus4W, ALU_ResultW, ReadDataW;
-
-output [31:0] ResultW;
+    input clk, rst,
+    input [1:0] ResultSrcW, // 2 bits
+    input [31:0] PCPlus4W, ALU_ResultW, ReadDataW,
+    output [31:0] ResultW
 );
 
 
 
 // Declaration of Module
-assign ResultW = (~ResultSrcW) ? ALU_ResultW : ReadDataW ;
-// Mux result_mux (    
-//                 .a(ALU_ResultW),
-//                 .b(ReadDataW),
-//                 .s(ResultSrcW),
-//                 .c(ResultW)
-//                 );
+assign ResultW = (ResultSrcW == 2'b00) ? ALU_ResultW :
+                 (ResultSrcW == 2'b01) ? ReadDataW :
+                 (ResultSrcW == 2'b10) ? PCPlus4W :
+                 32'b0;
+
 endmodule

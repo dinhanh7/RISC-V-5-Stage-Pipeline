@@ -1,14 +1,16 @@
 module execute_cycle(
         // Khai báo input/output
-    input clk, rst, RegWriteE,ALUSrcE,MemWriteE,ResultSrcE,BranchE, // Tín hiệu điều khiển và clock/reset
+    input clk, rst, RegWriteE,ALUSrcE,MemWriteE,BranchE, // Tín hiệu điều khiển và clock/reset
     input [2:0] ALUControlE, // Điều khiển phép toán ALU
+    input [1:0] ResultSrcE, // 2 bits
     input [31:0] RD1_E, RD2_E, Imm_Ext_E, // Dữ liệu đọc từ thanh ghi và immediate
     input [4:0] RD_E, // Địa chỉ thanh ghi đích
     input [31:0] PCE, PCPlus4E, // PC và PC+4
     input [31:0] ResultW, // Dữ liệu ghi về từ stage W (cho forwarding)
     input [1:0] ForwardA_E, ForwardB_E, // Tín hiệu chọn forwarding
 
-    output PCSrcE, RegWriteM, MemWriteM, ResultSrcM,
+    output PCSrcE, RegWriteM, MemWriteM, 
+    output [1:0] ResultSrcM, // 2 bits
     output [4:0] RD_M,
     output [31:0] PCPlus4M, WriteDataM, ALU_ResultM,
     output [31:0] PCTargetE
@@ -20,9 +22,11 @@ module execute_cycle(
     wire [31:0] Src_A, Src_B_interim, Src_B;
     wire [31:0] ResultE;
     wire ZeroE;
+    wire [31:0] Sum;
 
     // Đăng ký pipeline giữa E và M
-    reg RegWriteE_r, MemWriteE_r, ResultSrcE_r;
+    reg RegWriteE_r, MemWriteE_r;
+    reg [1:0] ResultSrcE_r; // 2 bits
     reg [4:0] RD_E_r;
     reg [31:0] PCPlus4E_r, RD2_E_r, ResultE_r;
 
@@ -55,12 +59,12 @@ module execute_cycle(
     //         );
 
     // ALU thực hiện phép toán
-    assign {Cout,Sum} = (ALUControlE[0] == 1'b0) ? Src_A + Src_B : (Src_A + ((~Src_B)+1)) ;
+    assign Sum = (ALUControlE[0] == 1'b0) ? Src_A + Src_B : (Src_A + ((~Src_B)+1)) ;
     assign ResultE = (ALUControlE == 3'b000) ? Sum :
                     (ALUControlE == 3'b001) ? Sum :
                     (ALUControlE == 3'b010) ? Src_A & Src_B :
                     (ALUControlE == 3'b011) ? Src_A | Src_B :
-                    (ALUControlE == 3'b101) ? {{31{1'b0}},(Sum[31])} : {32{1'b0}};
+                    (ALUControlE == 3'b101) ? {{31{1'b0}},(Sum[31])} : {32{1'b0}};//SLT
     
     // assign OverFlow = ((Sum[31] ^ Src_A[31]) & 
     //                   (~(ALUControlE[0] ^ Src_B[31] ^ Src_A[31])) &
@@ -93,7 +97,7 @@ module execute_cycle(
         if(rst == 1'b0) begin
             RegWriteE_r <= 1'b0; 
             MemWriteE_r <= 1'b0; 
-            ResultSrcE_r <= 1'b0;
+            ResultSrcE_r <= 2'b00;
             RD_E_r <= 5'h00;
             PCPlus4E_r <= 32'h00000000; 
             RD2_E_r <= 32'h00000000; 
@@ -114,7 +118,7 @@ module execute_cycle(
     assign PCSrcE = ZeroE &  BranchE; // Xác định có branch hay không
     assign RegWriteM = RegWriteE_r;
     assign MemWriteM = MemWriteE_r;
-    assign ResultSrcM = ResultSrcE_r;
+    assign ResultSrcM = ResultSrcE_r; // 2 bits
     assign RD_M = RD_E_r;
     assign PCPlus4M = PCPlus4E_r;
     assign WriteDataM = RD2_E_r;
