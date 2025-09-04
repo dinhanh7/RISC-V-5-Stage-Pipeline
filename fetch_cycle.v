@@ -1,11 +1,12 @@
-module fetch_cycle(clk, rst, PCSrcE, PCTargetE, InstrD, PCD, PCPlus4D);
-
-    // Khai báo input & output
+module fetch_cycle(    // Khai báo input & output
     input clk, rst;                // clk: xung clock, rst: tín hiệu reset
     input PCSrcE;                  // Chọn nguồn cập nhật PC (nhảy hay tuần tự)
     input [31:0] PCTargetE;        // Địa chỉ nhảy nếu có branch
     output [31:0] InstrD;          // Lệnh xuất ra cho stage Decode
     output [31:0] PCD, PCPlus4D;   // PC và PC+4 xuất ra cho stage Decode
+    );
+
+
 
     // Khai báo wire tạm thời
     wire [31:0] PC_F, PCPlus4F;

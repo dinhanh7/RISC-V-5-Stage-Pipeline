@@ -1,7 +1,5 @@
 
-module memory_cycle(clk, rst, RegWriteM, MemWriteM, ResultSrcM, RD_M, PCPlus4M, WriteDataM, 
-    ALU_ResultM, RegWriteW, ResultSrcW, RD_W, PCPlus4W, ALU_ResultW, ReadDataW);
-    
+module memory_cycle(c
     // Declaration of I/Os
     input clk, rst, RegWriteM, MemWriteM, ResultSrcM;
     input [4:0] RD_M; 
@@ -10,6 +8,8 @@ module memory_cycle(clk, rst, RegWriteM, MemWriteM, ResultSrcM, RD_M, PCPlus4M, 
     output RegWriteW, ResultSrcW; 
     output [4:0] RD_W;
     output [31:0] PCPlus4W, ALU_ResultW, ReadDataW;
+);
+    
 
     // Declaration of Interim Wires
     wire [31:0] ReadDataM;

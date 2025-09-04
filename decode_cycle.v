@@ -1,16 +1,15 @@
-module decode_cycle(clk, rst, InstrD, PCD, PCPlus4D, RegWriteW, RDW, ResultW, RegWriteE, ALUSrcE, MemWriteE, ResultSrcE,
-    BranchE,  ALUControlE, RD1_E, RD2_E, Imm_Ext_E, RD_E, PCE, PCPlus4E, RS1_E, RS2_E);
+module decode_cycle(    // Khai báo input/output
+    input clk, rst, RegWriteW,           // clk: clock, rst: reset, RegWriteW: tín hiệu ghi thanh ghi ở stage W
+    input [4:0] RDW,                     // Địa chỉ thanh ghi đích ở stage W
+    input [31:0] InstrD, PCD, PCPlus4D, ResultW, // Lệnh, PC, PC+4, dữ liệu ghi về từ stage W
 
-    // Khai báo input/output
-    input clk, rst, RegWriteW;           // clk: clock, rst: reset, RegWriteW: tín hiệu ghi thanh ghi ở stage W
-    input [4:0] RDW;                     // Địa chỉ thanh ghi đích ở stage W
-    input [31:0] InstrD, PCD, PCPlus4D, ResultW; // Lệnh, PC, PC+4, dữ liệu ghi về từ stage W
+    output RegWriteE,ALUSrcE,MemWriteE,ResultSrcE,BranchE, // Các tín hiệu điều khiển cho stage E
+    output [2:0] ALUControlE,            // Tín hiệu điều khiển ALU cho stage E
+    output [31:0] RD1_E, RD2_E, Imm_Ext_E, // Dữ liệu đọc từ thanh ghi, immediate mở rộng
+    output [4:0] RS1_E, RS2_E, RD_E,     // Địa chỉ các thanh ghi nguồn và đích
+    output [31:0] PCE, PCPlus4E,         // PC và PC+4 chuyển sang stage E
+);
 
-    output RegWriteE,ALUSrcE,MemWriteE,ResultSrcE,BranchE; // Các tín hiệu điều khiển cho stage E
-    output [2:0] ALUControlE;            // Tín hiệu điều khiển ALU cho stage E
-    output [31:0] RD1_E, RD2_E, Imm_Ext_E; // Dữ liệu đọc từ thanh ghi, immediate mở rộng
-    output [4:0] RS1_E, RS2_E, RD_E;     // Địa chỉ các thanh ghi nguồn và đích
-    output [31:0] PCE, PCPlus4E;         // PC và PC+4 chuyển sang stage E
 
     // Khai báo wire tạm thời cho stage D
     wire RegWriteD,ALUSrcD,MemWriteD,ResultSrcD,BranchD;

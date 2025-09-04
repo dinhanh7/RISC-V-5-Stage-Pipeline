@@ -1,19 +1,20 @@
-module execute_cycle(clk, rst, RegWriteE, ALUSrcE, MemWriteE, ResultSrcE, BranchE, ALUControlE, 
-    RD1_E, RD2_E, Imm_Ext_E, RD_E, PCE, PCPlus4E, PCSrcE, PCTargetE, RegWriteM, MemWriteM, ResultSrcM, RD_M, PCPlus4M, WriteDataM, ALU_ResultM, ResultW, ForwardA_E, ForwardB_E);
+module execute_cycle(
+        // Khai báo input/output
+    input clk, rst, RegWriteE,ALUSrcE,MemWriteE,ResultSrcE,BranchE, // Tín hiệu điều khiển và clock/reset
+    input [2:0] ALUControlE, // Điều khiển phép toán ALU
+    input [31:0] RD1_E, RD2_E, Imm_Ext_E, // Dữ liệu đọc từ thanh ghi và immediate
+    input [4:0] RD_E, // Địa chỉ thanh ghi đích
+    input [31:0] PCE, PCPlus4E, // PC và PC+4
+    input [31:0] ResultW, // Dữ liệu ghi về từ stage W (cho forwarding)
+    input [1:0] ForwardA_E, ForwardB_E, // Tín hiệu chọn forwarding
 
-    // Khai báo input/output
-    input clk, rst, RegWriteE,ALUSrcE,MemWriteE,ResultSrcE,BranchE; // Tín hiệu điều khiển và clock/reset
-    input [2:0] ALUControlE; // Điều khiển phép toán ALU
-    input [31:0] RD1_E, RD2_E, Imm_Ext_E; // Dữ liệu đọc từ thanh ghi và immediate
-    input [4:0] RD_E; // Địa chỉ thanh ghi đích
-    input [31:0] PCE, PCPlus4E; // PC và PC+4
-    input [31:0] ResultW; // Dữ liệu ghi về từ stage W (cho forwarding)
-    input [1:0] ForwardA_E, ForwardB_E; // Tín hiệu chọn forwarding
+    output PCSrcE, RegWriteM, MemWriteM, ResultSrcM,
+    output [4:0] RD_M,
+    output [31:0] PCPlus4M, WriteDataM, ALU_ResultM,
+    output [31:0] PCTargetE
+);
 
-    output PCSrcE, RegWriteM, MemWriteM, ResultSrcM;
-    output [4:0] RD_M; 
-    output [31:0] PCPlus4M, WriteDataM, ALU_ResultM;
-    output [31:0] PCTargetE;
+
 
     // Wire tạm thời cho các nguồn vào ALU
     wire [31:0] Src_A, Src_B_interim, Src_B;

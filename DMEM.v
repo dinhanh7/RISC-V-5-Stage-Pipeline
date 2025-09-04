@@ -1,9 +1,11 @@
 
-module DMEM(clk,rst,WE,WD,A,RD);
+module DMEM(    
+    input clk,rst,WE,
+    input [31:0]A,WD,
+    output [31:0]RD
+    );
 
-    input clk,rst,WE;
-    input [31:0]A,WD;
-    output [31:0]RD;
+
 
     reg [31:0] mem [0:63];
 
