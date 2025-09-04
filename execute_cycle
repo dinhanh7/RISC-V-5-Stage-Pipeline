@@ -1,0 +1,122 @@
+module execute_cycle(clk, rst, RegWriteE, ALUSrcE, MemWriteE, ResultSrcE, BranchE, ALUControlE, 
+    RD1_E, RD2_E, Imm_Ext_E, RD_E, PCE, PCPlus4E, PCSrcE, PCTargetE, RegWriteM, MemWriteM, ResultSrcM, RD_M, PCPlus4M, WriteDataM, ALU_ResultM, ResultW, ForwardA_E, ForwardB_E);
+
+    // Khai báo input/output
+    input clk, rst, RegWriteE,ALUSrcE,MemWriteE,ResultSrcE,BranchE; // Tín hiệu điều khiển và clock/reset
+    input [2:0] ALUControlE; // Điều khiển phép toán ALU
+    input [31:0] RD1_E, RD2_E, Imm_Ext_E; // Dữ liệu đọc từ thanh ghi và immediate
+    input [4:0] RD_E; // Địa chỉ thanh ghi đích
+    input [31:0] PCE, PCPlus4E; // PC và PC+4
+    input [31:0] ResultW; // Dữ liệu ghi về từ stage W (cho forwarding)
+    input [1:0] ForwardA_E, ForwardB_E; // Tín hiệu chọn forwarding
+
+    output PCSrcE, RegWriteM, MemWriteM, ResultSrcM;
+    output [4:0] RD_M; 
+    output [31:0] PCPlus4M, WriteDataM, ALU_ResultM;
+    output [31:0] PCTargetE;
+
+    // Wire tạm thời cho các nguồn vào ALU
+    wire [31:0] Src_A, Src_B_interim, Src_B;
+    wire [31:0] ResultE;
+    wire ZeroE;
+
+    // Đăng ký pipeline giữa E và M
+    reg RegWriteE_r, MemWriteE_r, ResultSrcE_r;
+    reg [4:0] RD_E_r;
+    reg [31:0] PCPlus4E_r, RD2_E_r, ResultE_r;
+
+    // Mux 3 ngõ chọn nguồn A cho ALU (forwarding)
+    assign Src_A = (ForwardA_E == 2'b00) ? RD1_E : (ForwardA_E == 2'b01) ? ResultW : (ForwardA_E == 2'b10) ? ALU_ResultM : 32'h00000000;
+    // Mux_3_by_1 srca_mux (
+    //                     .a(RD1_E),      // Dữ liệu gốc từ thanh ghi
+    //                     .b(ResultW),    // Dữ liệu từ stage W (forward)
+    //                     .c(ALU_ResultM),// Dữ liệu từ stage M (forward)
+    //                     .s(ForwardA_E), // Tín hiệu chọn
+    //                     .d(Src_A)
+    //                     );
+
+    // Mux 3 ngõ chọn nguồn B cho ALU (forwarding)
+    assign Src_B_interim = (ForwardB_E == 2'b00) ? RD2_E : (ForwardB_E == 2'b01) ? ResultW : (ForwardB_E == 2'b10) ? ALU_ResultM : 32'h00000000;
+    // Mux_3_by_1 srcb_mux (
+    //                     .a(RD2_E),
+    //                     .b(ResultW),
+    //                     .c(ALU_ResultM),
+    //                     .s(ForwardB_E),
+    //                     .d(Src_B_interim)
+    //                     );
+    // Mux chọn giữa Src_B_interim (từ thanh ghi/forward) hoặc immediate
+    assign Src_B = (~ALUSrcE) ? Src_B_interim : Imm_Ext_E ;
+    // Mux alu_src_mux (
+    //         .a(Src_B_interim),
+    //         .b(Imm_Ext_E),
+    //         .s(ALUSrcE),
+    //         .c(Src_B)
+    //         );
+
+    // ALU thực hiện phép toán
+    assign {Cout,Sum} = (ALUControlE[0] == 1'b0) ? Src_A + Src_B : (Src_A + ((~Src_B)+1)) ;
+    assign ResultE = (ALUControlE == 3'b000) ? Sum :
+                    (ALUControlE == 3'b001) ? Sum :
+                    (ALUControlE == 3'b010) ? Src_A & Src_B :
+                    (ALUControlE == 3'b011) ? Src_A | Src_B :
+                    (ALUControlE == 3'b101) ? {{31{1'b0}},(Sum[31])} : {32{1'b0}};
+    
+    // assign OverFlow = ((Sum[31] ^ Src_A[31]) & 
+    //                   (~(ALUControlE[0] ^ Src_B[31] ^ Src_A[31])) &
+    //                   (~ALUControlE[1]));
+    // assign Carry = ((~ALUControlE[1]) & Cout);
+    assign ZeroE = &(~ResultE);
+    // assign Negative = ResultE[31];
+    
+    // ALU alu (
+    //         .A(Src_A),
+    //         .B(Src_B),
+    //         .Result(ResultE),
+    //         .ALUControl(ALUControlE),
+    //         .OverFlow(),
+    //         .Carry(),
+    //         .Zero(ZeroE), // Cờ zero dùng cho branch
+    //         .Negative()
+    //         );
+
+    // Bộ cộng tính địa chỉ branch target
+    assign PCTargetE = PCE + Imm_Ext_E;
+    // PC_Adder branch_adder (
+    //         .a(PCE),
+    //         .b(Imm_Ext_E),
+    //         .c(PCTargetE)
+    //         );
+
+    // Đăng ký pipeline giữa Execute và Memory
+    always @(posedge clk or negedge rst) begin
+        if(rst == 1'b0) begin
+            RegWriteE_r <= 1'b0; 
+            MemWriteE_r <= 1'b0; 
+            ResultSrcE_r <= 1'b0;
+            RD_E_r <= 5'h00;
+            PCPlus4E_r <= 32'h00000000; 
+            RD2_E_r <= 32'h00000000; 
+            ResultE_r <= 32'h00000000;
+        end
+        else begin
+            RegWriteE_r <= RegWriteE; 
+            MemWriteE_r <= MemWriteE; 
+            ResultSrcE_r <= ResultSrcE;
+            RD_E_r <= RD_E;
+            PCPlus4E_r <= PCPlus4E; 
+            RD2_E_r <= Src_B_interim; // Dữ liệu ghi bộ nhớ (có thể đã forward)
+            ResultE_r <= ResultE;
+        end
+    end
+
+    // Gán output cho stage Memory
+    assign PCSrcE = ZeroE &  BranchE; // Xác định có branch hay không
+    assign RegWriteM = RegWriteE_r;
+    assign MemWriteM = MemWriteE_r;
+    assign ResultSrcM = ResultSrcE_r;
+    assign RD_M = RD_E_r;
+    assign PCPlus4M = PCPlus4E_r;
+    assign WriteDataM = RD2_E_r;
+    assign ALU_ResultM = ResultE_r;
+
+endmodule
